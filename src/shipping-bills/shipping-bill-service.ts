@@ -13,9 +13,11 @@ const DEFAULT_HEADERS = {
  * as defined in shipping_bill.http
  */
 export function toHttpShippingBillPayload(values: ShippingBillFormValues) {
-  const parseNum = (val: any) => (val != null && val !== '' ? Number(val) : undefined)
+  function parseNum(val: any) {
+    return val != null && val !== '' ? Number(val) : undefined
+  }
 
-  const parseDate = (dateStr?: string) => {
+  function parseDate(dateStr?: string) {
     if (!dateStr) return undefined
     // Returns days since Unix Epoch (1970-01-01)
     return Math.floor(new Date(dateStr).getTime() / 86400000)
@@ -29,7 +31,9 @@ export function toHttpShippingBillPayload(values: ShippingBillFormValues) {
     GBP: 826,
     SGD: 702
   }
-  const parseCurrency = (c?: string) => (c ? CURRENCY_MAP[c] || parseNum(c) || 840 : 840)
+  function parseCurrency(c?: string) {
+    return c ? CURRENCY_MAP[c] || parseNum(c) || 840 : 840
+  }
 
   return {
     chaId: 1000,
@@ -115,7 +119,7 @@ export function toHttpShippingBillPayload(values: ShippingBillFormValues) {
 
 export function normalizeApiBill(raw: any): SavedBill {
   if (!raw) return { id: 0, created: '', updated: '', values: emptyBill() }
-  const formatIsoString = (val: any) => {
+  function formatIsoString(val: any) {
     if (!val) return new Date().toISOString()
     if (typeof val === 'number') {
       const ms = val < 10000000000 ? val * 1000 : val
@@ -134,7 +138,7 @@ export function normalizeApiBill(raw: any): SavedBill {
     } as SavedBill
   }
 
-  const formatEpochDays = (days?: any) => {
+  function formatEpochDays(days?: any) {
     if (typeof days === 'number') {
       const d = new Date(days * 86400000)
       if (!isNaN(d.getTime())) return d.toISOString().split('T')[0]
@@ -648,7 +652,7 @@ export const shippingBillService = {
 
         const disposition = response.headers.get('content-disposition')
         if (disposition && disposition.includes('filename=')) {
-          const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+          const match = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition)
           if (match && match[1]) {
             filename = match[1].replace(/['"]/g, '')
           }

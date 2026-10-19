@@ -277,7 +277,7 @@ function AsyncPartySelect({
         <PopoverTrigger
           className={clsx(
             'outline-focus-select group flex w-full cursor-pointer items-center justify-between rounded border border-gray-200 pr-2 hover:border-gray-300 disabled:cursor-not-allowed disabled:opacity-50',
-            `${className || 'bg-white'}${disabled ? 'cursor-not-allowed opacity-50' : ''}`
+            `${className ?? 'bg-white'}${disabled ? 'cursor-not-allowed opacity-50' : ''}`
           )}
           disabled={disabled}>
           <div className="flex items-center p-2 text-sm">
@@ -846,10 +846,7 @@ function InvoiceEditor({
                     {(() => {
                       const selectedScheme = schemeCodes.find((s) => s.value === item.schemeCode)
                       const showDrawback =
-                        selectedScheme &&
-                        (selectedScheme.drawback === true ||
-                          selectedScheme.RODTEP === true ||
-                          selectedScheme.ROSCTL === true)
+                        selectedScheme && (selectedScheme.drawback || selectedScheme.RODTEP || selectedScheme.ROSCTL)
                       return showDrawback ? (
                         <>
                           <div className="w-36">
@@ -1743,7 +1740,7 @@ function BillEditor({ bill }: { bill?: SavedBill }) {
 export default function ShippingBillPage() {
   const { id } = useParams<{ id?: string }>()
   const { bills } = useDemoData()
-  const bill = id ? bills.find((item) => item.id === Number(id)) || shippingBillService.getById(id) : undefined
+  const bill = id ? (bills.find((item) => item.id === Number(id)) ?? shippingBillService.getById(id)) : undefined
   if (id && !bill)
     return (
       <div className="space-y-3">

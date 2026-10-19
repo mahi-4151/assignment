@@ -16,7 +16,7 @@ export default function ListDashboard() {
   const [isLoading, setIsLoading] = useState(false)
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
 
-  const fetchBills = async () => {
+  async function fetchBills() {
     setIsLoading(true)
     try {
       const remoteBills = await shippingBillService.list()
@@ -35,7 +35,7 @@ export default function ListDashboard() {
     fetchBills()
   }, [])
 
-  const handleDownloadFlatFile = async (bill: SavedBill) => {
+  async function handleDownloadFlatFile(bill: SavedBill) {
     try {
       setDownloadingId(bill.id)
       const res = await shippingBillService.downloadFlatFile(bill.id, bill)
