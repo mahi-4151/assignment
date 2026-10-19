@@ -1,9 +1,6 @@
 import { emptyBill, emptyInvoice, SavedBill, ShippingBillFormValues } from './model'
 
-const BASE_URL =
-  import.meta.env.VITE_BASE_URL ||
-  import.meta.env.PUBLIC_API_URL ||
-  'http://192.168.1.123:3408'
+const BASE_URL = import.meta.env.VITE_BASE_URL || import.meta.env.PUBLIC_API_URL || 'http://192.168.1.123:3408'
 
 const DEFAULT_HEADERS = {
   Accept: 'application/json',
@@ -32,7 +29,7 @@ export function toHttpShippingBillPayload(values: ShippingBillFormValues) {
     GBP: 826,
     SGD: 702
   }
-  const parseCurrency = (c?: string) => c ? (CURRENCY_MAP[c] || parseNum(c) || 840) : 840
+  const parseCurrency = (c?: string) => (c ? CURRENCY_MAP[c] || parseNum(c) || 840 : 840)
 
   return {
     chaId: 1000,
@@ -174,65 +171,66 @@ export function normalizeApiBill(raw: any): SavedBill {
     loosePackets: raw.loosePackets ? String(raw.loosePackets) : '0',
     numberOfContainers: raw.numberOfContainers ? String(raw.numberOfContainers) : '0',
     containers: raw.containers || [],
-    invoices: Array.isArray(raw.invoices) && raw.invoices.length > 0
-      ? raw.invoices.map((inv: any, idx: number) => ({
-        invoiceNumber: inv.invoiceNumber || `INV-${idx + 1}`,
-        invoiceDate: formatEpochDays(inv.date || inv.invoiceDate) || new Date().toISOString().split('T')[0],
-        currency:
-          typeof inv.currency === 'number'
-            ? inv.currency === 840
-              ? 'USD'
-              : inv.currency === 356
-                ? 'INR'
-                : String(inv.currency)
-            : inv.currency || 'USD',
-        contractType: String(inv.contractType ?? '1'),
-        buyerId: String(inv.buyerId ?? ''),
-        buyerBranchId: String(inv.buyerAddressId ?? inv.buyerBranchId ?? ''),
-        buyerSameAsConsignee: inv.buyerId == null || String(inv.buyerId) === String(raw.consigneeId),
-        freightAmount: inv.freightAmount ? String(inv.freightAmount) : '',
-        insuranceAmount: inv.insuranceAmount ? String(inv.insuranceAmount) : '',
-        items:
-          Array.isArray(inv.items) && inv.items.length > 0
-            ? inv.items.map((item: any) => ({
-              schemeCode: item.schemeCode || '',
-              ritcCode: item.ritcCode || '',
-              goodsDescription1: item.goodsDescription || item.goodsDescription1 || '',
-              quantity: item.quantity ? String(item.quantity) : '',
-              unitOfMeasurement: item.unitOfMeasurement || 'PCS',
-              unitPrice: item.unitPrice ? String(item.unitPrice) : '',
-              unitOfRate: item.unitOfRate || item.unitOfMeasurement || 'PCS',
-              numberOfUnits: item.noOfUnits ? String(item.noOfUnits) : '1',
-              presentMarketValue: item.presentMarketValue ? String(item.presentMarketValue) : '',
-              thirdPartyItem: Boolean(item.thirdParty),
-              rewardItem: Boolean(item.rewardItem),
-              totalPackage: item.totalPackage ? String(item.totalPackage) : '',
-              endUseOfItem: item.endUseOfItem || '',
-              igstPaymentStatus: item.igstPaymentStatus ? String(item.igstPaymentStatus) : '2',
-              originDistrictCode: item.originDistrictCode ? String(item.originDistrictCode) : '',
-              tradeAgreementsCode: item.tradeAgreementsCode || '',
-              drawbackSerialNumber: item.drawbackSerialNumber || '',
-              drawbackQuantity: item.drawbackQuantity ? String(item.drawbackQuantity) : ''
-            }))
-            : []
-      }))
-      : [emptyInvoice()],
+    invoices:
+      Array.isArray(raw.invoices) && raw.invoices.length > 0
+        ? raw.invoices.map((inv: any, idx: number) => ({
+            invoiceNumber: inv.invoiceNumber || `INV-${idx + 1}`,
+            invoiceDate: formatEpochDays(inv.date || inv.invoiceDate) || new Date().toISOString().split('T')[0],
+            currency:
+              typeof inv.currency === 'number'
+                ? inv.currency === 840
+                  ? 'USD'
+                  : inv.currency === 356
+                    ? 'INR'
+                    : String(inv.currency)
+                : inv.currency || 'USD',
+            contractType: String(inv.contractType ?? '1'),
+            buyerId: String(inv.buyerId ?? ''),
+            buyerBranchId: String(inv.buyerAddressId ?? inv.buyerBranchId ?? ''),
+            buyerSameAsConsignee: inv.buyerId == null || String(inv.buyerId) === String(raw.consigneeId),
+            freightAmount: inv.freightAmount ? String(inv.freightAmount) : '',
+            insuranceAmount: inv.insuranceAmount ? String(inv.insuranceAmount) : '',
+            items:
+              Array.isArray(inv.items) && inv.items.length > 0
+                ? inv.items.map((item: any) => ({
+                    schemeCode: item.schemeCode || '',
+                    ritcCode: item.ritcCode || '',
+                    goodsDescription1: item.goodsDescription || item.goodsDescription1 || '',
+                    quantity: item.quantity ? String(item.quantity) : '',
+                    unitOfMeasurement: item.unitOfMeasurement || 'PCS',
+                    unitPrice: item.unitPrice ? String(item.unitPrice) : '',
+                    unitOfRate: item.unitOfRate || item.unitOfMeasurement || 'PCS',
+                    numberOfUnits: item.noOfUnits ? String(item.noOfUnits) : '1',
+                    presentMarketValue: item.presentMarketValue ? String(item.presentMarketValue) : '',
+                    thirdPartyItem: Boolean(item.thirdParty),
+                    rewardItem: Boolean(item.rewardItem),
+                    totalPackage: item.totalPackage ? String(item.totalPackage) : '',
+                    endUseOfItem: item.endUseOfItem || '',
+                    igstPaymentStatus: item.igstPaymentStatus ? String(item.igstPaymentStatus) : '2',
+                    originDistrictCode: item.originDistrictCode ? String(item.originDistrictCode) : '',
+                    tradeAgreementsCode: item.tradeAgreementsCode || '',
+                    drawbackSerialNumber: item.drawbackSerialNumber || '',
+                    drawbackQuantity: item.drawbackQuantity ? String(item.drawbackQuantity) : ''
+                  }))
+                : []
+          }))
+        : [emptyInvoice()],
     packingRanges: Array.isArray(raw.packgingList || raw.packingRanges)
       ? (raw.packgingList || raw.packingRanges).map((p: any) => ({
-        packingNumberFrom: String(p.packingNumberFrom ?? ''),
-        packingNumberTo: String(p.packingNumberTo ?? ''),
-        packingCode: p.packingCode || 'CTN'
-      }))
+          packingNumberFrom: String(p.packingNumberFrom ?? ''),
+          packingNumberTo: String(p.packingNumberTo ?? ''),
+          packingCode: p.packingCode || 'CTN'
+        }))
       : [],
     documents: Array.isArray(raw.documents)
       ? raw.documents.map((doc: any) => ({
-        invoiceSerialNumber: String(doc.invoiceSerialNumber ?? '1'),
-        itemSerialNumber: String(doc.itemSerialNumber ?? '1'),
-        imageReferenceNumber: doc.imageReferenceNumber || '',
-        documentTypeCode: doc.documentTypeCode || '',
-        documentIssueDate: formatEpochDays(doc.documentIssueDate) || new Date().toISOString().split('T')[0],
-        fileType: String(doc.fileType ?? '1')
-      }))
+          invoiceSerialNumber: String(doc.invoiceSerialNumber ?? '1'),
+          itemSerialNumber: String(doc.itemSerialNumber ?? '1'),
+          imageReferenceNumber: doc.imageReferenceNumber || '',
+          documentTypeCode: doc.documentTypeCode || '',
+          documentIssueDate: formatEpochDays(doc.documentIssueDate) || new Date().toISOString().split('T')[0],
+          fileType: String(doc.fileType ?? '1')
+        }))
       : []
   }
 
@@ -276,9 +274,7 @@ export function generateFlatFileContent(bill: SavedBill): string {
 
   if (v.invoices && v.invoices.length > 0) {
     lines.push(`<TABLE>INVOICE`)
-    lines.push(
-      `<F>INVOICE_SN^INVOICE_NO^INVOICE_DATE^CURRENCY^CONTRACT_TYPE^BUYER_ID^FREIGHT_AMOUNT^INSURANCE_AMOUNT`
-    )
+    lines.push(`<F>INVOICE_SN^INVOICE_NO^INVOICE_DATE^CURRENCY^CONTRACT_TYPE^BUYER_ID^FREIGHT_AMOUNT^INSURANCE_AMOUNT`)
     v.invoices.forEach((inv, idx) => {
       lines.push(
         `<R>${idx + 1}^${inv.invoiceNumber}^${inv.invoiceDate || ''}^${inv.currency || 'USD'}^${inv.contractType || '1'}^${inv.buyerId || v.consigneeId || ''}^${inv.freightAmount || 0}^${inv.insuranceAmount || 0}`
@@ -286,11 +282,9 @@ export function generateFlatFileContent(bill: SavedBill): string {
     })
 
     lines.push(`<TABLE>ITEM`)
-    lines.push(
-      `<F>INVOICE_SN^ITEM_SN^RITC_CODE^DESCRIPTION^QUANTITY^UOM^UNIT_PRICE^LINE_TOTAL^SCHEME_CODE`
-    )
+    lines.push(`<F>INVOICE_SN^ITEM_SN^RITC_CODE^DESCRIPTION^QUANTITY^UOM^UNIT_PRICE^LINE_TOTAL^SCHEME_CODE`)
     v.invoices.forEach((inv, invIdx) => {
-      ; (inv.items || []).forEach((item, itemIdx) => {
+      ;(inv.items || []).forEach((item, itemIdx) => {
         const total = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)
         lines.push(
           `<R>${invIdx + 1}^${itemIdx + 1}^${item.ritcCode || ''}^${(item.goodsDescription1 || '').replace(/[\^\r\n]+/g, ' ')}^${item.quantity || ''}^${item.unitOfMeasurement || 'PCS'}^${item.unitPrice || ''}^${total.toFixed(2)}^${item.schemeCode || ''}`
@@ -324,28 +318,248 @@ function triggerBlobDownload(blob: Blob, filename: string) {
 }
 
 export const API_SEED_SHIPPING_BILLS = [
-  { id: 1000, jobNumber: 150011, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1790967817 },
-  { id: 1001, jobNumber: 150012, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1790968385 },
-  { id: 1002, jobNumber: 150013, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1790969061 },
-  { id: 1003, jobNumber: 150014, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1790969592 },
-  { id: 1004, jobNumber: 150015, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1791003787 },
-  { id: 1005, jobNumber: 150016, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1791010527 },
-  { id: 1006, jobNumber: 150017, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1791138507 },
-  { id: 1007, jobNumber: 150018, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1791139137 },
-  { id: 1008, jobNumber: 150019, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1791139150 },
-  { id: 1009, jobNumber: 150020, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1791139885 },
-  { id: 1010, jobNumber: 150021, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1791140799 },
-  { id: 1011, jobNumber: 150022, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1791140811 },
-  { id: 1012, jobNumber: 150023, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1791141353 },
-  { id: 1013, jobNumber: 150024, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1791141776 },
-  { id: 1014, jobNumber: 150025, jobDate: 20728, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "KRBUS", destinationPort: "KRBUS", updated: 1791143087 },
-  { id: 1021, jobNumber: 150026, jobDate: 20714, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "INMUN1", destinationPort: "USMSY", updated: 1791183194 },
-  { id: 1023, jobNumber: 150028, jobDate: 20714, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "INMUN1", destinationPort: "USMSY", updated: 1791449123 },
-  { id: 1024, jobNumber: 150029, jobDate: 20714, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "INMUN1", destinationPort: "USMSY", updated: 1791449142 },
-  { id: 1025, jobNumber: 150030, jobDate: 20714, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "INMUN1", destinationPort: "USMSY", updated: 1791449171 },
-  { id: 1026, jobNumber: 150031, jobDate: 20714, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "INMUN1", destinationPort: "USMSY", updated: 1791449252 },
-  { id: 1027, jobNumber: 150032, jobDate: 20714, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "INMUN1", destinationPort: "USMSY", updated: 1791449308 },
-  { id: 1028, jobNumber: 150033, jobDate: 20714, exporterName: "Amit Exports", consigneeName: "H&M HENNES & MAURITZ LTD", loadingPort: "INMUN1", dischargePort: "INMUN1", destinationPort: "USMSY", updated: 1791452556 }
+  {
+    id: 1000,
+    jobNumber: 150011,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1790967817
+  },
+  {
+    id: 1001,
+    jobNumber: 150012,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1790968385
+  },
+  {
+    id: 1002,
+    jobNumber: 150013,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1790969061
+  },
+  {
+    id: 1003,
+    jobNumber: 150014,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1790969592
+  },
+  {
+    id: 1004,
+    jobNumber: 150015,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1791003787
+  },
+  {
+    id: 1005,
+    jobNumber: 150016,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1791010527
+  },
+  {
+    id: 1006,
+    jobNumber: 150017,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1791138507
+  },
+  {
+    id: 1007,
+    jobNumber: 150018,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1791139137
+  },
+  {
+    id: 1008,
+    jobNumber: 150019,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1791139150
+  },
+  {
+    id: 1009,
+    jobNumber: 150020,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1791139885
+  },
+  {
+    id: 1010,
+    jobNumber: 150021,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1791140799
+  },
+  {
+    id: 1011,
+    jobNumber: 150022,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1791140811
+  },
+  {
+    id: 1012,
+    jobNumber: 150023,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1791141353
+  },
+  {
+    id: 1013,
+    jobNumber: 150024,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1791141776
+  },
+  {
+    id: 1014,
+    jobNumber: 150025,
+    jobDate: 20728,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'KRBUS',
+    destinationPort: 'KRBUS',
+    updated: 1791143087
+  },
+  {
+    id: 1021,
+    jobNumber: 150026,
+    jobDate: 20714,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'INMUN1',
+    destinationPort: 'USMSY',
+    updated: 1791183194
+  },
+  {
+    id: 1023,
+    jobNumber: 150028,
+    jobDate: 20714,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'INMUN1',
+    destinationPort: 'USMSY',
+    updated: 1791449123
+  },
+  {
+    id: 1024,
+    jobNumber: 150029,
+    jobDate: 20714,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'INMUN1',
+    destinationPort: 'USMSY',
+    updated: 1791449142
+  },
+  {
+    id: 1025,
+    jobNumber: 150030,
+    jobDate: 20714,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'INMUN1',
+    destinationPort: 'USMSY',
+    updated: 1791449171
+  },
+  {
+    id: 1026,
+    jobNumber: 150031,
+    jobDate: 20714,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'INMUN1',
+    destinationPort: 'USMSY',
+    updated: 1791449252
+  },
+  {
+    id: 1027,
+    jobNumber: 150032,
+    jobDate: 20714,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'INMUN1',
+    destinationPort: 'USMSY',
+    updated: 1791449308
+  },
+  {
+    id: 1028,
+    jobNumber: 150033,
+    jobDate: 20714,
+    exporterName: 'Amit Exports',
+    consigneeName: 'H&M HENNES & MAURITZ LTD',
+    loadingPort: 'INMUN1',
+    dischargePort: 'INMUN1',
+    destinationPort: 'USMSY',
+    updated: 1791452556
+  }
 ]
 
 let internalBills: SavedBill[] = normalizeApiBills(API_SEED_SHIPPING_BILLS)
@@ -388,7 +602,6 @@ export const shippingBillService = {
     }
     return internalBills
   },
-
 
   /**
    * GET /api/shipping-bills/:id/flat-file
@@ -444,9 +657,7 @@ export const shippingBillService = {
         if (contentType.includes('application/json')) {
           const json = await response.json()
           const content =
-            typeof json === 'string'
-              ? json
-              : json.file || json.content || json.data || JSON.stringify(json, null, 2)
+            typeof json === 'string' ? json : json.file || json.content || json.data || JSON.stringify(json, null, 2)
           blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
         } else {
           blob = await response.blob()
@@ -487,4 +698,3 @@ export const shippingBillService = {
     return response.json()
   }
 }
-
