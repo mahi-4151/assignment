@@ -1,9 +1,10 @@
 import { routes } from '@/shared/route-paths'
 import { invoiceTotal, SavedBill } from '@/shipping-bills/model'
-import { shippingBillService } from '@/shipping-bills/shipping-bill-service'
+import { shippingBillService } from '@/shipping-bills/services/shipping-bill-service'
+import { useQuery } from 'core/react-query'
 import { navigate } from 'core/routing'
 import { toast } from 'core/toast-manager'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Badge } from 'ui/basic/badge'
 import { Button } from 'ui/basic/button'
 import { Card, CardContent } from 'ui/basic/card'
@@ -11,39 +12,29 @@ import { Table } from 'ui/basic/table'
 import { Input } from 'ui/inputs/input'
 
 export default function ListDashboard() {
-  const [bills, setBills] = useState<SavedBill[]>(() => shippingBillService.getInitialBills())
   const [search, setSearch] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
 
-  async function fetchBills() {
-    setIsLoading(true)
-    try {
-      const remoteBills = await shippingBillService.list()
-      if (remoteBills && remoteBills.length > 0) {
-        setBills(remoteBills)
-        toast.success(`Loaded ${remoteBills.length} shipping bills`)
-      }
-    } catch (err: any) {
-      console.warn('Backend API listing notice:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  // Bills come from the mock shipping-bill service; React Query owns the
+  // loading / error / success states for the list.
+  const billsQuery = useQuery({
+    queryKey: ['shipping-bill', 'list'],
+    queryFn: () => shippingBillService.listShippingBills(),
+    retry: false
+  })
+  const bills = billsQuery.data ?? []
+  const isLoading = billsQuery.isLoading || billsQuery.isFetching
 
-  useEffect(() => {
-    fetchBills()
-  }, [])
+  async function fetchBills() {
+    const result = await billsQuery.refetch()
+    if (result.isSuccess) toast.success(`Loaded ${result.data.length} shipping bills`)
+  }
 
   async function handleDownloadFlatFile(bill: SavedBill) {
     try {
       setDownloadingId(bill.id)
-      const res = await shippingBillService.downloadFlatFile(bill.id, bill)
-      if (res.source === 'api') {
-        toast.success('Flat file downloaded from backend API')
-      } else {
-        toast.success(`Flat file (.sb) generated and downloaded for #${bill.values.jobNumber || bill.id}`)
-      }
+      await shippingBillService.downloadFlatFile(bill.id, bill)
+      toast.success(`Flat file (.sb) generated and downloaded for #${bill.values.jobNumber ? bill.values.jobNumber : bill.id}`)
     } catch (err: any) {
       console.warn('Flat file notice:', err)
       toast.error('Failed to generate flat file')
@@ -85,8 +76,8 @@ export default function ListDashboard() {
           <p className="mt-1 text-sm text-gray-500">Create and continue the shipping bill step of each export job.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchBills} disabled={isLoading}>
-            {isLoading ? 'Syncing...' : 'Sync from API'}
+          <Button variant="outline" size="sm" onClick={() => void fetchBills()} disabled={isLoading}>
+            {isLoading ? 'Syncing...' : 'Sync from mock API'}
           </Button>
           <Button onClick={() => navigate(routes.shippingBillNew)}>+ New shipping bill</Button>
         </div>
@@ -128,7 +119,20 @@ export default function ListDashboard() {
               {filtered.length} {filtered.length === 1 ? 'bill' : 'bills'}
             </span>
           </div>
-          {filtered.length ? (
+          {billsQuery.isLoading ? (
+            <div className="rounded-lg border border-dashed border-gray-300 p-10 text-center" role="status">
+              <p className="font-medium">Loading shipping bills...</p>
+              <p className="mt-1 text-sm text-gray-500">Fetching them from the mock service.</p>
+            </div>
+          ) : billsQuery.isError ? (
+            <div className="rounded-lg border border-dashed border-red-300 p-10 text-center" role="alert">
+              <p className="font-medium text-red-800">Shipping bills could not be loaded</p>
+              <p className="mt-1 text-sm text-gray-500">The mock service request failed. Try again.</p>
+              <Button className="mt-4" variant="outline" onClick={() => void billsQuery.refetch()}>
+                Retry
+              </Button>
+            </div>
+          ) : filtered.length ? (
             <Table>
               <thead>
                 <tr>

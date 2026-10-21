@@ -1,9 +1,9 @@
-import { documentCodes } from '@/data/e-sanchit-codes'
 import { useState } from 'react'
 import { Button } from 'ui/basic/button'
 import { Input } from 'ui/inputs/input'
 import { dateType } from '../form-options'
 import type { BillFormContext } from '../form-types'
+import { referenceDataService } from '../services/reference-data-service'
 import { Advanced, AsyncPartySelect } from './form-controls'
 
 export function DocumentItem({
@@ -54,17 +54,9 @@ export function DocumentItem({
           <AsyncPartySelect
             name={`documents.${index}.documentTypeCode`}
             placeholder="Search document type..."
-            fetchOptions={(query) => {
-              const q = query.toLowerCase().trim()
-              const filtered = documentCodes.filter(
-                (doc) => doc.label.toLowerCase().includes(q) || doc.value.toLowerCase().includes(q)
-              )
-              return Promise.resolve(filtered.map((doc) => ({ value: doc.value, label: doc.label })))
-            }}
-            getInitialLabel={(val) => {
-              const found = documentCodes.find((doc) => doc.value === val || doc.label === val)
-              return Promise.resolve(found ? found.label : val)
-            }}
+            rules={{ required: true }}
+            fetchOptions={(query) => referenceDataService.searchDocumentCodes(query)}
+            getInitialLabel={(val) => referenceDataService.getDocumentCodeLabel(val)}
           />
         </div>
         <Input label="Image reference number" {...register(`documents.${index}.imageReferenceNumber`)} />
@@ -85,16 +77,10 @@ export function DocumentItem({
               name={`documents.${index}.fileType`}
               placeholder="Search file type..."
               className="bg-transparent"
-              fetchOptions={(query) => {
-                const q = query.toLowerCase().trim()
-                const options = [{ value: 'pdf', label: 'PDF' }]
-                return Promise.resolve(
-                  options.filter((doc) => doc.label.toLowerCase().includes(q) || doc.value.toLowerCase().includes(q))
-                )
-              }}
-              getInitialLabel={(val) => {
-                const found = [{ value: 'pdf', label: 'PDF' }].find((doc) => doc.value === val || doc.label === val)
-                return Promise.resolve(found ? found.label : val)
+              fetchOptions={(query) => referenceDataService.searchFileTypes(query)}
+              getInitialLabel={async (val) => {
+                const found = (await referenceDataService.searchFileTypes(val)).find((doc) => doc.value === val)
+                return found ? found.label : val
               }}
             />
           </div>

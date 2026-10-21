@@ -1,6 +1,3 @@
-import { quantityCodes } from '@/data/quantity-code'
-import schemeCodes from '@/data/scheme-codes'
-import { Trades } from '@/data/trade-agrements'
 import { useFieldArray } from 'core/form'
 import { Button } from 'ui/basic/button'
 import { Checkbox } from 'ui/inputs/checkbox'
@@ -10,6 +7,7 @@ import { dateType } from '../form-options'
 import type { BillFormContext, InvoiceAddBranchHandler, InvoiceQuickAddHandler } from '../form-types'
 import type { BillInvoiceForm, Business, ShippingBillFormValues } from '../model'
 import { emptyItem, invoiceTotal, lineTotal } from '../model'
+import { useFormOptions } from '../use-form-options'
 import { Advanced, PartyFields, SectionHeading } from './form-controls'
 
 interface InvoiceGoodsEditorProps {
@@ -30,6 +28,8 @@ export function InvoiceGoodsEditor({
   onAddBranch
 }: InvoiceGoodsEditorProps) {
   const { control, register } = formCtx.hooks
+  const { options } = useFormOptions()
+  const schemeCodes = options?.schemeCodes ?? []
   const {
     fields: items,
     append: addItem,
@@ -72,6 +72,7 @@ export function InvoiceGoodsEditor({
                     name={`invoices.${index}.items.${itemIndex}.schemeCode`}
                     options={schemeCodes}
                     placeholder="Select scheme"
+                    rules={{ required: true }}
                   />
                   <Input
                     label="Goods description"
@@ -87,7 +88,7 @@ export function InvoiceGoodsEditor({
                   <Select<ShippingBillFormValues>
                     label="Unit"
                     name={`invoices.${index}.items.${itemIndex}.unitOfMeasurement`}
-                    options={quantityCodes}
+                    options={options?.quantityCodes ?? []}
                     rules={{ required: true }}
                   />
                   <Input
@@ -105,11 +106,7 @@ export function InvoiceGoodsEditor({
                   <Select<ShippingBillFormValues>
                     label="IGST payment"
                     name={`invoices.${index}.items.${itemIndex}.igstPaymentStatus`}
-                    options={[
-                      { value: 'NA', label: 'Not applicable' },
-                      { value: 'LUT', label: 'Under LUT / bond' },
-                      { value: 'P', label: 'Against payment' }
-                    ]}
+                    options={options?.igstStatuses ?? []}
                     placeholder="Select if applicable"
                   />
                 </div>
@@ -176,7 +173,7 @@ export function InvoiceGoodsEditor({
                     <Select<ShippingBillFormValues>
                       label="Unit of rate"
                       {...register(`invoices.${index}.items.${itemIndex}.unitOfRate`)}
-                      options={quantityCodes}
+                      options={options?.quantityCodes ?? []}
                       placeholder={invoice.items[index].unitOfMeasurement}
                     />
                     <Input
@@ -199,11 +196,7 @@ export function InvoiceGoodsEditor({
                     <Select<ShippingBillFormValues>
                       label="Accessory status"
                       name={`invoices.${index}.items.${itemIndex}.accessoryStatus`}
-                      options={[
-                        { value: '0', label: 'No accessory' },
-                        { value: '1', label: 'Included free of cost' },
-                        { value: '2', label: 'Entered separately' }
-                      ]}
+                      options={options?.accessoryStatuses ?? []}
                       placeholder="Select if relevant"
                     />
                     {item.igstPaymentStatus === 'P' && (
@@ -228,7 +221,7 @@ export function InvoiceGoodsEditor({
                     <Select<ShippingBillFormValues>
                       label="Trade agreement code"
                       name={`invoices.${index}.items.${itemIndex}.tradeAgreementsCode`}
-                      options={Trades}
+                      options={options?.tradeAgreements ?? []}
                       placeholder="NCPTI"
                     />
                     <Input label="End use code" {...register(`invoices.${index}.items.${itemIndex}.endUseOfItem`)} />

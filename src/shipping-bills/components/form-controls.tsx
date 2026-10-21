@@ -5,10 +5,9 @@ import { InputError } from 'ui/inputs/error'
 import { Popover, PopoverContent, PopoverTrigger } from 'ui/interactive/popover'
 import { PopoverContext } from 'ui/interactive/popover-context'
 import { clsx, getContext } from 'ui/utils'
-import { getDemoData } from '../demo-store'
 import type { BillFormContext, BranchPath, PartyOwnerPath } from '../form-types'
 import type { Business, Exporter, ShippingBillFormValues } from '../model'
-import { partyMockService } from '../party-mock-service'
+import { partyService } from '../services/party-service'
 
 export function SectionHeading({ title, description }: { title: string; description?: string }) {
   return (
@@ -111,9 +110,15 @@ export function AsyncPartySelect({
     let active = true
     if (value) {
       if (getInitialLabelRef.current) {
-        void getInitialLabelRef.current(String(value)).then((lbl) => {
-          if (active && lbl) setSelectedLabel(lbl)
-        })
+        void getInitialLabelRef
+          .current(String(value))
+          .then((lbl) => {
+            if (active && lbl) setSelectedLabel(lbl)
+          })
+          // Unknown/removed records (service 404) just keep the raw value as label.
+          .catch(() => {
+            if (active) setSelectedLabel(String(value))
+          })
       } else {
         const found = options.find((o) => o.value === String(value))
         if (found) setSelectedLabel(found.label)
@@ -264,13 +269,32 @@ export function PartyFields({
   onQuickAdd: () => void
 }) {
   const ownerId = formCtx.hooks.watch(ownerName)
-  const { exporters, businesses } = getDemoData()
-  const owner =
-    kind === 'exporter'
-      ? (exporters.find((party) => String(party.id) === ownerId) ??
-        parties.find((party) => String(party.id) === ownerId))
-      : (businesses.find((party) => String(party.id) === ownerId) ??
-        parties.find((party) => String(party.id) === ownerId))
+  const listedOwner = parties.find((party) => String(party.id) === ownerId)
+  const [fetchedOwner, setFetchedOwner] = useState<Exporter | Business | undefined>(undefined)
+
+  // The selected party is normally in `parties`, but when it is filtered out
+  // (e.g. a buyer that no longer matches the role filter) resolve it through
+  // the party service instead of reading a local store.
+  useEffect(() => {
+    if (!ownerId || listedOwner) {
+      setFetchedOwner(undefined)
+      return
+    }
+    let active = true
+    const request = kind === 'exporter' ? partyService.getExporterById(ownerId) : partyService.getBusinessById(ownerId)
+    void request
+      .then((party) => {
+        if (active) setFetchedOwner(party)
+      })
+      .catch(() => {
+        if (active) setFetchedOwner(undefined)
+      })
+    return () => {
+      active = false
+    }
+  }, [kind, listedOwner, ownerId])
+
+  const owner = listedOwner ?? fetchedOwner
 
   useEffect(() => {
     const selectedBranch = formCtx.hooks.getValues(branchName)
@@ -299,14 +323,14 @@ export function PartyFields({
           rules={{ required }}
           fetchOptions={async (query) => {
             if (kind === 'exporter') {
-              const res = await partyMockService.searchExporters(query)
+              const res = await partyService.searchExporters(query)
               return res.map((item) => ({
                 value: String(item.id),
                 label: item.name,
                 sublabel: item.iec ? `IEC: ${item.iec}` : undefined
               }))
             } else {
-              const res = await partyMockService.searchConsignees(query)
+              const res = await partyService.searchConsignees(query)
               return res.map((item) => ({
                 value: String(item.id),
                 label: item.name
@@ -315,11 +339,11 @@ export function PartyFields({
           }}
           getInitialLabel={async (id) => {
             if (kind === 'exporter') {
-              const item = await partyMockService.getExporterById(id)
-              return item ? item.name : ''
+              const item = await partyService.getExporterById(id)
+              return item.name
             } else {
-              const item = await partyMockService.getConsigneeById(id)
-              return item ? item.name : ''
+              const item = await partyService.getBusinessById(id)
+              return item.name
             }
           }}
         />
@@ -345,14 +369,14 @@ export function PartyFields({
           fetchOptions={async (query) => {
             if (!ownerId) return []
             if (kind === 'exporter') {
-              const res = await partyMockService.searchExporterBranches(ownerId, query)
+              const res = await partyService.searchExporterBranches(ownerId, query)
               return res.map((branch) => ({
                 value: String(branch.id),
                 label: `${branch.branchName} · ${branch.city}`,
                 sublabel: branch.address1
               }))
             } else {
-              const res = await partyMockService.searchConsigneeBranches(ownerId, query)
+              const res = await partyService.searchBusinessBranches(ownerId, query)
               return res.map((branch) => ({
                 value: String(branch.id),
                 label: `${branch.branchName} · ${branch.city}`,

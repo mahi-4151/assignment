@@ -1,9 +1,8 @@
-import { paymentTypes, priceInclusionTypes } from '@/data/types'
 import { Input } from 'ui/inputs/input'
 import { Select } from 'ui/inputs/select'
-import { currencyOptions } from '../form-options'
 import type { BillFormContext, InvoiceAddBranchHandler, InvoiceQuickAddHandler } from '../form-types'
 import type { BillInvoiceForm, Business, ShippingBillFormValues } from '../model'
+import { useFormOptions } from '../use-form-options'
 import { PartyFields } from './form-controls'
 
 interface InvoiceChargesProps {
@@ -17,6 +16,7 @@ interface InvoiceChargesProps {
 
 export function InvoiceCharges({ formCtx, index, invoice, businesses, onQuickAdd, onAddBranch }: InvoiceChargesProps) {
   const { register, watch } = formCtx.hooks
+  const { options } = useFormOptions()
   const invoiceValues = watch(`invoices.${index}`)
   const thirdPartyOptions = businesses.filter(
     (business) => business.isThirdParty || business.id === Number(invoice.thirdPartyId)
@@ -48,7 +48,7 @@ export function InvoiceCharges({ formCtx, index, invoice, businesses, onQuickAdd
               />
               <Select<ShippingBillFormValues>
                 name={`invoices.${index}.freightCurrency`}
-                options={currencyOptions}
+                options={options?.currencies ?? []}
                 placeholder={invoice.currency}
               />
             </div>
@@ -75,7 +75,7 @@ export function InvoiceCharges({ formCtx, index, invoice, businesses, onQuickAdd
               />
               <Select<ShippingBillFormValues>
                 name={`invoices.${index}.insuranceCurrency`}
-                options={currencyOptions}
+                options={options?.currencies ?? []}
                 placeholder={invoice.currency}
               />
             </div>
@@ -104,7 +104,7 @@ export function InvoiceCharges({ formCtx, index, invoice, businesses, onQuickAdd
               />
               <Select<ShippingBillFormValues>
                 name={`invoices.${index}.commissionCurrency`}
-                options={currencyOptions}
+                options={options?.currencies ?? []}
                 placeholder={invoice.currency}
               />
             </div>
@@ -131,7 +131,7 @@ export function InvoiceCharges({ formCtx, index, invoice, businesses, onQuickAdd
               />
               <Select<ShippingBillFormValues>
                 name={`invoices.${index}.discountCurrency`}
-                options={currencyOptions}
+                options={options?.currencies ?? []}
                 placeholder={invoice.currency}
               />
             </div>
@@ -160,7 +160,7 @@ export function InvoiceCharges({ formCtx, index, invoice, businesses, onQuickAdd
               />
               <Select<ShippingBillFormValues>
                 name={`invoices.${index}.otherDeductionsCurrency`}
-                options={currencyOptions}
+                options={options?.currencies ?? []}
                 placeholder={invoice.currency}
               />
             </div>
@@ -184,14 +184,14 @@ export function InvoiceCharges({ formCtx, index, invoice, businesses, onQuickAdd
         <Select<ShippingBillFormValues>
           label="Price includes"
           name={`invoices.${index}.freightInsuranceIncluded`}
-          options={priceInclusionTypes}
+          options={options?.priceInclusionTypes ?? []}
           placeholder="Select if applicable"
         />
         <Input label="Contract / order number" {...register(`invoices.${index}.contractNumber`)} />
         <Select<ShippingBillFormValues>
           label="Payment type"
           name={`invoices.${index}.natureOfPayment`}
-          options={paymentTypes}
+          options={options?.paymentTypes ?? []}
           placeholder="Select if applicable"
         />
         <Input label="Payment period (days)" type="number" {...register(`invoices.${index}.periodOfPayment`)} />
