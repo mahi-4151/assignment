@@ -1,3 +1,5 @@
+export const currencyOptions = ['USD', 'EUR', 'INR', 'AED', 'GBP', 'SGD'].map((value) => ({ value, label: value }))
+
 export const sealTypes = [
   { value: 'S', label: 'S - Self sealed' },
   { value: 'A', label: 'A - Agency / Customs sealed' },

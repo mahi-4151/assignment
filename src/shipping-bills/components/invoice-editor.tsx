@@ -1,12 +1,12 @@
-import { contractTypes } from '@/data/types'
 import { Button } from 'ui/basic/button'
 import { Card, CardContent, CardHeader } from 'ui/basic/card'
 import { Checkbox } from 'ui/inputs/checkbox'
 import { Input } from 'ui/inputs/input'
 import { Select } from 'ui/inputs/select'
-import { currencyOptions, dateType } from '../form-options'
+import { dateType } from '../form-options'
 import type { BillFormContext, InvoiceAddBranchHandler, InvoiceQuickAddHandler } from '../form-types'
 import type { BillInvoiceForm, Business, ShippingBillFormValues } from '../model'
+import { useFormOptions } from '../use-form-options'
 import { PartyFields } from './form-controls'
 import { InvoiceCharges } from './invoice-charges'
 import { InvoiceGoodsEditor } from './invoice-goods-editor'
@@ -33,6 +33,7 @@ export function InvoiceEditor({
   canRemove
 }: InvoiceEditorProps) {
   const { register } = formCtx.hooks
+  const { options } = useFormOptions()
   const buyerSame = formCtx.hooks.watch(`invoices.${index}.buyerSameAsConsignee`)
   const buyerOptions = businesses.filter((business) => business.isBuyer || business.id === Number(invoice.buyerId))
 
@@ -57,7 +58,7 @@ export function InvoiceEditor({
               <Select<ShippingBillFormValues>
                 label="Currency"
                 name={`invoices.${index}.currency`}
-                options={currencyOptions}
+                options={options?.currencies ?? []}
                 rules={{ required: true }}
               />
             </div>
@@ -74,7 +75,7 @@ export function InvoiceEditor({
           <Select<ShippingBillFormValues>
             label="Contract"
             name={`invoices.${index}.contractType`}
-            options={contractTypes}
+            options={options?.contractTypes ?? []}
             rules={{ required: true }}
           />
         </div>

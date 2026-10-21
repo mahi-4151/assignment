@@ -6,6 +6,7 @@ import { Select } from 'ui/inputs/select'
 import { dateType } from '../form-options'
 import type { BillFormContext } from '../form-types'
 import { emptyDocument, type ShippingBillFormValues } from '../model'
+import { useFormOptions } from '../use-form-options'
 import { DocumentItem } from './document-item'
 import { Advanced, PersistentTab, SectionHeading } from './form-controls'
 
@@ -16,6 +17,7 @@ interface ShippingBillDocumentsTabProps {
 
 export function ShippingBillDocumentsTab({ formCtx, activeTab }: ShippingBillDocumentsTabProps) {
   const { control, register } = formCtx.hooks
+  const { options } = useFormOptions()
   const {
     fields: containers,
     append: addContainer,
@@ -61,23 +63,16 @@ export function ShippingBillDocumentsTab({ formCtx, activeTab }: ShippingBillDoc
                   <Select<ShippingBillFormValues>
                     label="Size"
                     name={`containers.${index}.containerSize`}
-                    options={[
-                      { value: '20', label: '20 ft' },
-                      { value: '40', label: '40 ft' },
-                      { value: '45', label: '45 ft' }
-                    ]}
+                    options={options?.containerSizes ?? []}
                     placeholder="Select size"
+                    rules={{ required: true }}
                   />
                   <Input label="Seal number" {...register(`containers.${index}.exciseSealNumber`)} />
                   <Input label="Seal date" type={dateType} {...register(`containers.${index}.sealDate`)} />
                   <Select<ShippingBillFormValues>
                     label="Seal type"
                     name={`containers.${index}.sealType`}
-                    options={[
-                      { value: 1, label: 'BTSL - Bottle Seal' },
-                      { value: 2, label: 'ESEAL - Electronic Seal' },
-                      { value: 3, label: 'RFID - Radio Frequency Identifier' }
-                    ]}
+                    options={options?.containerSealTypes ?? []}
                     placeholder="Select if needed"
                   />
                   <Input label="Seal device ID" {...register(`containers.${index}.sealDeviceId`)} />
@@ -189,10 +184,7 @@ export function ShippingBillDocumentsTab({ formCtx, activeTab }: ShippingBillDoc
                 <Select<ShippingBillFormValues>
                   label="Goods source"
                   name={`licenses.${index}.indigenousOrImported`}
-                  options={[
-                    { value: 'I', label: 'Imported' },
-                    { value: 'D', label: 'Indigenous' }
-                  ]}
+                  options={options?.licenceSources ?? []}
                   placeholder="Select if needed"
                 />
               </div>

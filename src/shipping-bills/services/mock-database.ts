@@ -1,5 +1,14 @@
-import { useSyncExternalStore } from 'react'
-import { Branch, Business, Exporter, SavedBill, ShippingBillFormValues, toShippingBillPayload } from './model'
+import type { Branch, Business, Exporter, SavedBill, ShippingBillFormValues } from '../model'
+import { toShippingBillPayload } from '../model'
+
+/**
+ * In-memory + localStorage mock database.
+ *
+ * This module is the persistence layer *behind* the mock services in this
+ * folder. UI code must never import it directly — it goes through
+ * `partyService` / `shippingBillService`, so a real backend can replace the
+ * whole layer without touching components.
+ */
 
 interface DemoData {
   exporters: Exporter[]
@@ -396,6 +405,7 @@ const seed: DemoData = {
         netWeight: '23.5',
         measurementUnit: 'KG',
         totalPackages: '12',
+        marksAndNumbers: 'AARAV TEXTILES / MADE IN INDIA',
         invoices: [
           {
             invoiceNumber: 'EX/2081/2026',
@@ -408,6 +418,7 @@ const seed: DemoData = {
             items: [
               {
                 ritcCode: '61091000',
+                schemeCode: '00',
                 goodsDescription1: 'Cotton T-shirts',
                 quantity: '51',
                 unitOfMeasurement: 'PCS',
@@ -462,7 +473,6 @@ function loadData(): DemoData {
 }
 
 let snapshot = loadData()
-const listeners = new Set<() => void>()
 
 function publish(next: DemoData) {
   snapshot = next
@@ -471,20 +481,9 @@ function publish(next: DemoData) {
   } catch {
     // The in-memory demo remains usable when storage is disabled.
   }
-  listeners.forEach((listener) => listener())
 }
 
-export function useDemoData() {
-  return useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener)
-      return () => listeners.delete(listener)
-    },
-    () => snapshot
-  )
-}
-
-export function getDemoData() {
+export function getMockData() {
   return snapshot
 }
 

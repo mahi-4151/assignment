@@ -1,12 +1,18 @@
-import { emptyBill, emptyInvoice, SavedBill, ShippingBillFormValues } from './model'
+import type { SavedBill, ShippingBillFormValues } from '../model'
+import { emptyBill, emptyInvoice } from '../model'
+import { getMockData, saveBill } from './mock-database'
+import { MockApiError, mockNotFound, mockRequest } from './mock-transport'
 
-const BASE_URL = import.meta.env.VITE_BASE_URL || import.meta.env.PUBLIC_API_URL || 'http://192.168.1.123:3408'
-
-const DEFAULT_HEADERS = {
-  Accept: 'application/json',
-  'Content-Type': 'application/json',
-  Authorization: 'tenantId=1000&user=1000&role=1'
-}
+/**
+ * Shipping Bill mock service — the equivalent of `/api/shipping-bills/*`.
+ *
+ * Asynchronous, Promise-based, with simulated latency and HTTP-style
+ * errors. Reads/writes go through the mock database behind this service;
+ * `API_SEED_SHIPPING_BILLS` below stands in for bills that already exist
+ * "server-side". A real backend replaces the method bodies with `fetch`
+ * calls (see `toHttpShippingBillPayload` for the wire format) — no UI code
+ * changes needed.
+ */
 
 /**
  * Transforms form values into the payload structure required by POST /api/shipping-bills
@@ -566,139 +572,89 @@ export const API_SEED_SHIPPING_BILLS = [
   }
 ]
 
-let internalBills: SavedBill[] = normalizeApiBills(API_SEED_SHIPPING_BILLS)
+const internalBills: SavedBill[] = normalizeApiBills(API_SEED_SHIPPING_BILLS)
+
+function allBills(): SavedBill[] {
+  const local = getMockData().bills
+  const localIds = new Set(local.map((bill) => bill.id))
+  return [...local, ...internalBills.filter((bill) => !localIds.has(bill.id))]
+}
+
+function findBill(id: string | number): SavedBill | undefined {
+  return allBills().find((bill) => String(bill.id) === String(id))
+}
 
 export const shippingBillService = {
-  /**
-   * Return initial in-memory bills
-   */
-  getInitialBills(): SavedBill[] {
-    return internalBills
+  /** Equivalent of `GET /api/shipping-bills`. Empty array when there are no bills. */
+  async listShippingBills(): Promise<SavedBill[]> {
+    return mockRequest('bills', () => allBills(), 300)
+  },
+
+  /** Equivalent of `GET /api/shipping-bills/:id`. Rejects 404 when unknown. */
+  async getShippingBill(id: string | number): Promise<SavedBill> {
+    return mockRequest(
+      'bills',
+      () => {
+        const bill = findBill(id)
+        if (!bill) throw mockNotFound('Shipping bill', id)
+        return bill
+      },
+      200
+    )
   },
 
   /**
-   * Find bill by id
+   * Equivalent of `POST /api/shipping-bills` (submit for filing).
+   * The mock "server" re-checks the essentials and rejects with 422, then
+   * persists through the mock database.
    */
-  getById(id: string | number): SavedBill | undefined {
-    return internalBills.find((b) => String(b.id) === String(id))
-  },
-
-  /**
-   * GET /api/shipping-bills
-   * List all shipping bills (per shipping_bill.http)
-   */
-  async list(): Promise<SavedBill[]> {
-    try {
-      const response = await fetch(`${BASE_URL}/api/shipping-bills`, {
-        method: 'GET',
-        headers: DEFAULT_HEADERS
-      })
-      if (response.ok) {
-        const data = await response.json()
-        const normalized = normalizeApiBills(data)
-        if (normalized && normalized.length > 0) {
-          internalBills = normalized
-          return normalized
+  async submitShippingBill(values: ShippingBillFormValues, id?: number): Promise<SavedBill> {
+    return mockRequest(
+      'submit',
+      () => {
+        if (values.invoices.length === 0) {
+          throw new MockApiError('A shipping bill needs at least one invoice', 422, 'VALIDATION')
         }
-      }
-    } catch {
-      // Fallback to internal API seed records
-    }
-    return internalBills
+        const numbers = values.invoices.map((invoice) => invoice.invoiceNumber.trim().toLowerCase()).filter(Boolean)
+        if (new Set(numbers).size !== numbers.length) {
+          throw new MockApiError('Invoice numbers must be unique on a shipping bill', 422, 'VALIDATION')
+        }
+        return saveBill(values, id)
+      },
+      450
+    )
   },
 
-  /**
-   * GET /api/shipping-bills/:id/flat-file
-   * Fetch flat file text or payload (per shipping_bill.http)
-   */
-  async getFlatFile(id: string | number) {
-    const response = await fetch(`${BASE_URL}/api/shipping-bills/${id}/flat-file`, {
-      method: 'GET',
-      headers: DEFAULT_HEADERS
-    })
-    if (!response.ok) {
-      throw new Error(`Failed to get flat file: ${response.status} ${response.statusText}`)
-    }
-    const contentType = response.headers.get('content-type') || ''
-    if (contentType.includes('application/json')) {
-      return response.json()
-    }
-    return response.text()
+  /** Equivalent of `PUT /api/shipping-bills/:id/draft` — incomplete bills are allowed. */
+  async saveDraft(values: ShippingBillFormValues, id?: number): Promise<SavedBill> {
+    return mockRequest('bills', () => saveBill(values, id), 200)
   },
 
-  /**
-   * Download shipping bill flat file (.sb) directly in the browser.
-   * Tries backend API first; falls back to generating .sb flat file locally from bill data.
-   */
-  async downloadFlatFile(
-    id: string | number,
-    billData?: SavedBill,
-    fallbackFilename?: string
-  ): Promise<{ source: 'api' | 'local' }> {
-    let filename = fallbackFilename || `shipping_bill_${id}.sb`
-
-    try {
-      const response = await fetch(`${BASE_URL}/api/shipping-bills/${id}/flat-file`, {
-        method: 'GET',
-        headers: {
-          Accept: '*/*',
-          Authorization: DEFAULT_HEADERS.Authorization
-        }
-      })
-
-      if (response.ok) {
-        const contentType = response.headers.get('content-type') || ''
-        let blob: Blob
-
-        const disposition = response.headers.get('content-disposition')
-        if (disposition && disposition.includes('filename=')) {
-          const match = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition)
-          if (match && match[1]) {
-            filename = match[1].replace(/['"]/g, '')
-          }
-        }
-
-        if (contentType.includes('application/json')) {
-          const json = await response.json()
-          const content =
-            typeof json === 'string' ? json : json.file || json.content || json.data || JSON.stringify(json, null, 2)
-          blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
-        } else {
-          blob = await response.blob()
-        }
-
-        triggerBlobDownload(blob, filename)
-        return { source: 'api' }
-      }
-    } catch {
-      // Backend API offline or unreachable - fall back to local generation
-    }
-
-    if (billData) {
-      const flatFileContent = generateFlatFileContent(billData)
-      const blob = new Blob([flatFileContent], { type: 'text/plain;charset=utf-8' })
-      const safeJob = billData.values.jobNumber || billData.id
-      triggerBlobDownload(blob, `shipping_bill_${safeJob}.sb`)
-      return { source: 'local' }
-    }
-
-    throw new Error(`Backend server (${BASE_URL}) is offline and no local bill data was found.`)
+  /** Equivalent of `GET /api/shipping-bills/:id/flat-file` (ICEGATE .sb text). */
+  async getFlatFile(id: string | number): Promise<string> {
+    return mockRequest(
+      'bills',
+      () => {
+        const bill = findBill(id)
+        if (!bill) throw mockNotFound('Shipping bill', id)
+        return generateFlatFileContent(bill)
+      },
+      200
+    )
   },
 
-  /**
-   * POST /api/shipping-bills
-   * Upsert shipping bill (per shipping_bill.http)
-   */
-  async upsert(values: ShippingBillFormValues) {
-    const payload = toHttpShippingBillPayload(values)
-    const response = await fetch(`${BASE_URL}/api/shipping-bills`, {
-      method: 'POST',
-      headers: DEFAULT_HEADERS,
-      body: JSON.stringify(payload)
-    })
-    if (!response.ok) {
-      throw new Error(`Failed to save shipping bill: ${response.status} ${response.statusText}`)
-    }
-    return response.json()
+  /** Downloads the .sb flat file in the browser, generated from mock data. */
+  async downloadFlatFile(id: string | number, billData?: SavedBill): Promise<{ source: 'local' }> {
+    return mockRequest(
+      'bills',
+      () => {
+        const bill = billData ?? findBill(id)
+        if (!bill) throw mockNotFound('Shipping bill', id)
+        const blob = new Blob([generateFlatFileContent(bill)], { type: 'text/plain;charset=utf-8' })
+        triggerBlobDownload(blob, `shipping_bill_${bill.values.jobNumber ? bill.values.jobNumber : bill.id}.sb`)
+        return { source: 'local' as const }
+      },
+      200
+    )
   }
 }

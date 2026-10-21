@@ -1,5 +1,4 @@
-import { ports } from './model'
-
-export const portOptions = ports.map((port) => ({ value: port.code, label: `${port.name} · ${port.code}` }))
-export const currencyOptions = ['USD', 'EUR', 'INR', 'AED', 'GBP', 'SGD'].map((value) => ({ value, label: value }))
+// Shared input constants for the Shipping Bill form.
+// (Option lists themselves come from the reference-data mock service —
+// see `services/reference-data-service.ts` and `use-form-options.ts`.)
 export const dateType = 'date' as 'text'

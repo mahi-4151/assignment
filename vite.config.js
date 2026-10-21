@@ -20,7 +20,7 @@ const port = parseInt(process.argv[process.argv.length - 2])
 
 /** @type {import('vite').UserConfig} */
 const config = {
-  server: { port: port, strictPort: true },
+  server: { port: port, strictPort: true, allowedHosts: true },
   plugins: [react()],
   envPrefix: ['VITE_', 'PUBLIC_'],
   resolve: {

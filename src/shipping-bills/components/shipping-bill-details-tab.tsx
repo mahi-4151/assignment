@@ -1,14 +1,13 @@
-import { stateOptions } from '@/data/states'
-import { cargoOptions, sealTypes, weightUnits } from '@/data/types'
 import { Card, CardContent, CardHeader } from 'ui/basic/card'
 import { Input } from 'ui/inputs/input'
 import { Select } from 'ui/inputs/select'
-import { dateType, portOptions } from '../form-options'
+import { dateType } from '../form-options'
 import type { BillFormContext, QuickAdd, QuickBranch } from '../form-types'
-import type { MarksAndNumbersOption } from '../marks-and-numbers-source'
 import type { Business, Exporter, ShippingBillFormValues } from '../model'
 import { portCountry } from '../model'
-import { partyMockService } from '../party-mock-service'
+import { partyService } from '../services/party-service'
+import type { MarksAndNumbersOption } from '../services/reference-data-service'
+import { useFormOptions } from '../use-form-options'
 import { Advanced, AsyncPartySelect, PartyFields, PersistentTab, SectionHeading } from './form-controls'
 
 interface ShippingBillDetailsTabProps {
@@ -34,6 +33,7 @@ export function ShippingBillDetailsTab({
 }: ShippingBillDetailsTabProps) {
   const { register, watch } = formCtx.hooks
   const values = watch()
+  const { options } = useFormOptions()
   const consigneeOptions = businesses.filter(
     (business) => business.isConsignee || String(business.id) === values.consigneeId
   )
@@ -74,7 +74,7 @@ export function ShippingBillDetailsTab({
                   placeholder="Select Indian port"
                   rules={{ required: true }}
                   fetchOptions={async (query) => {
-                    const res = await partyMockService.searchLoadingPorts(query)
+                    const res = await partyService.searchLoadingPorts(query)
                     return res.map((port) => ({
                       value: port.code,
                       label: `${port.name} · ${port.code}`,
@@ -82,8 +82,8 @@ export function ShippingBillDetailsTab({
                     }))
                   }}
                   getInitialLabel={async (code) => {
-                    const port = await partyMockService.getPortByCode(code)
-                    return port ? `${port.name} · ${port.code}` : code
+                    const port = await partyService.getPortByCode(code)
+                    return `${port.name} · ${port.code}`
                   }}
                 />
               </div>
@@ -94,7 +94,7 @@ export function ShippingBillDetailsTab({
                   placeholder="Select destination"
                   rules={{ required: true }}
                   fetchOptions={async (query) => {
-                    const res = await partyMockService.searchDestinationPorts(query)
+                    const res = await partyService.searchDestinationPorts(query)
                     return res.map((port) => ({
                       value: port.code,
                       label: `${port.name} · ${port.code}`,
@@ -102,8 +102,8 @@ export function ShippingBillDetailsTab({
                     }))
                   }}
                   getInitialLabel={async (code) => {
-                    const port = await partyMockService.getPortByCode(code)
-                    return port ? `${port.name} · ${port.code}` : code
+                    const port = await partyService.getPortByCode(code)
+                    return `${port.name} · ${port.code}`
                   }}
                 />
               </div>
@@ -118,26 +118,20 @@ export function ShippingBillDetailsTab({
               <Select<ShippingBillFormValues>
                 label="Discharge port"
                 name="dischargePort"
-                options={portOptions}
+                options={options?.ports ?? []}
                 placeholder="Defaults to destination"
               />
               <Select<ShippingBillFormValues>
                 label="Origin state"
                 name="originStateCode"
-                options={stateOptions}
+                options={options?.states ?? []}
                 placeholder="Defaults to Branch State Code"
               />
               <div></div>
               <Select<ShippingBillFormValues>
                 label="NFEI category"
                 name="nfeiCategory"
-                options={[
-                  ['01', 'Free trade sample'],
-                  ['02', 'Diplomatic goods'],
-                  ['03', 'Warranty replacement'],
-                  ['07', 'Gift parcel'],
-                  ['08', 'Other']
-                ].map(([value, label]) => ({ value, label }))}
+                options={options?.nfeiCategories ?? []}
                 placeholder="Not applicable"
               />
               <Input label="RBI waiver number" {...register('rbiWaiverNumber')} />
@@ -148,10 +142,18 @@ export function ShippingBillDetailsTab({
           <div className="border-t border-gray-200 pt-5">
             <SectionHeading title="Package Detail" />
             <div className="grid gap-4 pb-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Select<ShippingBillFormValues> label="Nature of cargo" name="natureOfCargo" options={cargoOptions} />
+              <Select<ShippingBillFormValues>
+                label="Nature of cargo"
+                name="natureOfCargo"
+                options={options?.cargoTypes ?? []}
+              />
               <Input label="Gross weight" type="number" {...register('grossWeight')} />
               <Input label="Net weight" type="number" {...register('netWeight')} />
-              <Select<ShippingBillFormValues> label="Weight unit" name="measurementUnit" options={weightUnits} />
+              <Select<ShippingBillFormValues>
+                label="Weight unit"
+                name="measurementUnit"
+                options={options?.weightUnits ?? []}
+              />
               <Input label="Total packages" type="number" {...register('totalPackages')} />
               <Select<ShippingBillFormValues>
                 label="Marks and numbers"
@@ -173,7 +175,7 @@ export function ShippingBillDetailsTab({
                 <Select<ShippingBillFormValues>
                   label="Seal type"
                   name="sealType"
-                  options={sealTypes}
+                  options={options?.sealTypes ?? []}
                   placeholder="Select if relevant"
                 />
                 {values.containers.length === 0 && (
