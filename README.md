@@ -74,7 +74,6 @@ what the form already loads; dates are compared as ISO calendar dates; "licence-
 is derived from the scheme label in `src/data/scheme-codes.ts`; RoDTEP/RoSCTL amount fields are
 not collected by the UI, so those schemes add no extra required fields.
 
-
 ### API-ready mock services
 
 There is no backend, so all data flows through asynchronous, Promise-based mock services in
@@ -131,5 +130,3 @@ directly after domain validation passes.
 - Don't use react-query mutation for react-hook-form submit handler.
 - For HMR (hot refresh), the file must export only react component, and not any other constant or object.
 - While most input elements use `...register('name')`, custom elements like select require `<Select<T> name="name" />` instead.
-
-
