@@ -47,8 +47,8 @@ export default function ListDashboard() {
 
   const filtered = bills
     .filter((bill) => {
-      const exporter = bill.values.exporterName || ''
-      const consignee = bill.values.consigneeName || ''
+      const exporter = bill.values.exporterName ?? ''
+      const consignee = bill.values.consigneeName ?? ''
       return [
         bill.id,
         bill.values.jobNumber,
@@ -149,8 +149,8 @@ export default function ListDashboard() {
               </thead>
               <tbody>
                 {filtered.map((bill) => {
-                  const exporterName = bill.values.exporterName || '—'
-                  const consigneeName = bill.values.consigneeName || '—'
+                  const exporterName = bill.values.exporterName ?? '—'
+                  const consigneeName = bill.values.consigneeName ?? '—'
                   const total = bill.values.invoices.reduce((sum, invoice) => sum + invoiceTotal(invoice), 0)
                   return (
                     <tr key={bill.id}>

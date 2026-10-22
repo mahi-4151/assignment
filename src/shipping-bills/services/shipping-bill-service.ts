@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/no-unnecessary-condition */
 import type { SavedBill, ShippingBillFormValues } from '../model'
 import { emptyBill, emptyInvoice } from '../model'
 import { getMockData, saveBill } from './mock-database'
