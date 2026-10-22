@@ -80,13 +80,13 @@ There is no backend, so all data flows through asynchronous, Promise-based mock 
 `src/shipping-bills/services/`. UI components never import mock data, hardcoded option arrays, or
 the store — they only call services (via React Query where data is fetched for rendering):
 
-| Service                              | Simulates                                                                                                    |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Service                              | Simulates                                                                                                                                                 |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `services/reference-data-service.ts` | `GET /api/reference-data/*` — form options (currencies, schemes, UQC/UOM, states, ports...), e-Sanchit document-code search, marks & numbers per exporter |
-| `services/party-service.ts`          | `GET/POST /api/parties/*`, `GET /api/ports/*` — party/branch search & lookup, quick-add party/branch saves, port search |
-| `services/shipping-bill-service.ts`  | `/api/shipping-bills/*` — list, get by id, submit (with server-style 422 checks), draft save, ICEGATE flat-file generation/download |
-| `services/mock-transport.ts`         | Simulated latency + HTTP-style `MockApiError` (404 for unknown records, 422 for invalid submissions, 503 for simulated failures) |
-| `services/mock-database.ts`          | The persistence behind the services (in-memory + localStorage seed data). Only services import it. |
+| `services/party-service.ts`          | `GET/POST /api/parties/*`, `GET /api/ports/*` — party/branch search & lookup, quick-add party/branch saves, port search                                   |
+| `services/shipping-bill-service.ts`  | `/api/shipping-bills/*` — list, get by id, submit (with server-style 422 checks), draft save, ICEGATE flat-file generation/download                       |
+| `services/mock-transport.ts`         | Simulated latency + HTTP-style `MockApiError` (404 for unknown records, 422 for invalid submissions, 503 for simulated failures)                          |
+| `services/mock-database.ts`          | The persistence behind the services (in-memory + localStorage seed data). Only services import it.                                                        |
 
 How the states are handled:
 

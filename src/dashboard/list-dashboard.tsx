@@ -34,7 +34,9 @@ export default function ListDashboard() {
     try {
       setDownloadingId(bill.id)
       await shippingBillService.downloadFlatFile(bill.id, bill)
-      toast.success(`Flat file (.sb) generated and downloaded for #${bill.values.jobNumber ? bill.values.jobNumber : bill.id}`)
+      toast.success(
+        `Flat file (.sb) generated and downloaded for #${bill.values.jobNumber ? bill.values.jobNumber : bill.id}`
+      )
     } catch (err: any) {
       console.warn('Flat file notice:', err)
       toast.error('Failed to generate flat file')
@@ -77,7 +79,7 @@ export default function ListDashboard() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => void fetchBills()} disabled={isLoading}>
-            {isLoading ? 'Syncing...' : 'Sync from mock API'}
+            {isLoading ? 'Syncing...' : 'Syncing...'}
           </Button>
           <Button onClick={() => navigate(routes.shippingBillNew)}>+ New shipping bill</Button>
         </div>
