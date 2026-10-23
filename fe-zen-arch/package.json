@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "vite build",
     "icon": "bash ./scripts/generate_icons.sh",
     "icon-all": "bash ./bin/generate_icons.sh custom rr sr"
   },
