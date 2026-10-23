@@ -34,9 +34,7 @@ export default function ListDashboard() {
     try {
       setDownloadingId(bill.id)
       await shippingBillService.downloadFlatFile(bill.id, bill)
-      toast.success(
-        `Flat file (.sb) generated and downloaded for #${bill.values.jobNumber ? bill.values.jobNumber : bill.id}`
-      )
+      toast.success(`Flat file (.sb) generated and downloaded for #${bill.values.jobNumber ?? bill.id}`)
     } catch (err: any) {
       console.warn('Flat file notice:', err)
       toast.error('Failed to generate flat file')
@@ -47,8 +45,8 @@ export default function ListDashboard() {
 
   const filtered = bills
     .filter((bill) => {
-      const exporter = bill.values.exporterName || ''
-      const consignee = bill.values.consigneeName || ''
+      const exporter = bill.values.exporterName ?? ''
+      const consignee = bill.values.consigneeName ?? ''
       return [
         bill.id,
         bill.values.jobNumber,
@@ -149,8 +147,8 @@ export default function ListDashboard() {
               </thead>
               <tbody>
                 {filtered.map((bill) => {
-                  const exporterName = bill.values.exporterName || '—'
-                  const consigneeName = bill.values.consigneeName || '—'
+                  const exporterName = bill.values.exporterName ?? '—'
+                  const consigneeName = bill.values.consigneeName ?? '—'
                   const total = bill.values.invoices.reduce((sum, invoice) => sum + invoiceTotal(invoice), 0)
                   return (
                     <tr key={bill.id}>
