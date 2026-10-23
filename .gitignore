@@ -2,5 +2,10 @@ node_modules/
 .pnpm-store/
 dist/
 /.tw-patch/
-/.env.development.local
+
+.env
+.env.*
+!.env.example
+
 .DS_Store
+
