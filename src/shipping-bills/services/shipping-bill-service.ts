@@ -20,8 +20,10 @@ import { MockApiError, mockNotFound, mockRequest } from './mock-transport'
  * as defined in shipping_bill.http
  */
 export function toHttpShippingBillPayload(values: ShippingBillFormValues) {
-  function parseNum(val: any) {
-    return val != null && val !== '' ? Number(val) : undefined
+  function parseNum(val: unknown) {
+    if (val == null || val === '') return undefined
+    const parsed = Number(val)
+    return Number.isFinite(parsed) ? parsed : undefined
   }
 
   function parseDate(dateStr?: string) {
@@ -124,150 +126,188 @@ export function toHttpShippingBillPayload(values: ShippingBillFormValues) {
   }
 }
 
-export function normalizeApiBill(raw: any): SavedBill {
-  if (!raw) return { id: 0, created: '', updated: '', values: emptyBill() }
-  function formatIsoString(val: any) {
-    if (!val) return new Date().toISOString()
-    if (typeof val === 'number') {
-      const ms = val < 10000000000 ? val * 1000 : val
-      const d = new Date(ms)
-      return !isNaN(d.getTime()) ? d.toISOString() : new Date().toISOString()
-    }
-    const d = new Date(val)
-    return !isNaN(d.getTime()) ? d.toISOString() : new Date().toISOString()
+type ApiRecord = Record<string, unknown>
+
+function isApiRecord(value: unknown): value is ApiRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function asApiRecord(value: unknown): ApiRecord {
+  return isApiRecord(value) ? value : {}
+}
+
+function asApiRecords(value: unknown): ApiRecord[] {
+  return Array.isArray(value) ? value.filter(isApiRecord) : []
+}
+
+function textValue(value: unknown, fallback = ''): string {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  return fallback
+}
+
+function numberValue(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+  return undefined
+}
+
+function stringOrEmpty(value: unknown): string {
+  return textValue(value)
+}
+
+export function normalizeApiBill(raw: unknown): SavedBill {
+  const record = asApiRecord(raw)
+  if (Object.keys(record).length === 0) {
+    return { id: 0, created: '', updated: '', values: emptyBill() }
   }
 
-  if (raw.values && raw.id) {
+  function formatIsoString(value: unknown): string {
+    if (value == null || value === '') return new Date().toISOString()
+    if (typeof value === 'number') {
+      const ms = value < 10000000000 ? value * 1000 : value
+      const date = new Date(ms)
+      return !Number.isNaN(date.getTime()) ? date.toISOString() : new Date().toISOString()
+    }
+    if (typeof value === 'string') {
+      const date = new Date(value)
+      return !Number.isNaN(date.getTime()) ? date.toISOString() : new Date().toISOString()
+    }
+    return new Date().toISOString()
+  }
+
+  const rawValues = record.values
+  const rawId = numberValue(record.id)
+  if (isApiRecord(rawValues) && rawId !== undefined) {
     return {
-      ...raw,
-      updated: formatIsoString(raw.updated),
-      created: formatIsoString(raw.created)
-    } as SavedBill
-  }
-
-  function formatEpochDays(days?: any) {
-    if (typeof days === 'number') {
-      const d = new Date(days * 86400000)
-      if (!isNaN(d.getTime())) return d.toISOString().split('T')[0]
+      id: rawId,
+      created: formatIsoString(record.created),
+      updated: formatIsoString(record.updated),
+      values: rawValues as unknown as ShippingBillFormValues
     }
-    return String(days || '')
   }
 
-  const id = Number(raw.id ?? raw.shippingBillId ?? raw.chaId ?? Math.floor(Math.random() * 100000))
-  const jobDateStr = formatEpochDays(raw.jobDate)
-  const updated = formatIsoString(raw.updatedAt || raw.updated || raw.createdAt)
-  const created = formatIsoString(raw.createdAt || raw.created || updated)
+  function formatEpochDays(value: unknown): string {
+    if (typeof value === 'number') {
+      const date = new Date(value * 86400000)
+      if (!Number.isNaN(date.getTime())) return date.toISOString().split('T')[0]
+    }
+    return textValue(value)
+  }
+
+  const id =
+    numberValue(record.id) ??
+    numberValue(record.shippingBillId) ??
+    numberValue(record.chaId) ??
+    Math.floor(Math.random() * 100000)
+  const jobDateStr = formatEpochDays(record.jobDate)
+  const updated = formatIsoString(record.updatedAt ?? record.updated ?? record.createdAt)
+  const created = formatIsoString(record.createdAt ?? record.created ?? updated)
+  const rawInvoices = asApiRecords(record.invoices)
 
   const values: ShippingBillFormValues = {
     ...emptyBill(),
-    jobNumber: raw.jobNumber ? String(raw.jobNumber) : `JOB-${id}`,
+    jobNumber: textValue(record.jobNumber, `JOB-${id}`),
     jobDate: jobDateStr || new Date().toISOString().split('T')[0],
-    exporterId: String(raw.exporterId ?? ''),
-    exporterBranchId: String(raw.exporterBranchId ?? ''),
-    exporterName: raw.exporterName || '',
-    consigneeId: String(raw.consigneeId ?? ''),
-    consigneeBranchId: String(raw.consigneeAddressId ?? raw.consigneeBranchId ?? ''),
-    consigneeName: raw.consigneeName || '',
-    originStateCode: raw.originStateCode ? String(raw.originStateCode) : '',
-    loadingPort: raw.loadingPort || '',
-    finalDestinationPort: raw.destinationPort || raw.finalDestinationPort || '',
-    dischargePort: raw.dischargePort || raw.destinationPort || raw.finalDestinationPort || '',
-    sealType: raw.sealType ? String(raw.sealType) : '3',
-    natureOfCargo: raw.natureOfCargo ? String(raw.natureOfCargo) : '1',
-    grossWeight: raw.grossWeight ? String(raw.grossWeight) : '',
-    netWeight: raw.netWeight ? String(raw.netWeight) : '',
-    measurementUnit: raw.measurementUnit || 'KGS',
-    totalPackages: raw.totalPackages ? String(raw.totalPackages) : '',
-    marksAndNumbers: raw.marksAndNumbers || '',
-    loosePackets: raw.loosePackets ? String(raw.loosePackets) : '0',
-    numberOfContainers: raw.numberOfContainers ? String(raw.numberOfContainers) : '0',
-    containers: raw.containers || [],
+    exporterId: stringOrEmpty(record.exporterId),
+    exporterBranchId: stringOrEmpty(record.exporterBranchId),
+    exporterName: textValue(record.exporterName),
+    consigneeId: stringOrEmpty(record.consigneeId),
+    consigneeBranchId: stringOrEmpty(record.consigneeAddressId ?? record.consigneeBranchId),
+    consigneeName: textValue(record.consigneeName),
+    originStateCode: stringOrEmpty(record.originStateCode),
+    loadingPort: textValue(record.loadingPort),
+    finalDestinationPort: textValue(record.destinationPort ?? record.finalDestinationPort),
+    dischargePort: textValue(record.dischargePort ?? record.destinationPort ?? record.finalDestinationPort),
+    sealType: textValue(record.sealType, '3'),
+    natureOfCargo: textValue(record.natureOfCargo, '1'),
+    grossWeight: stringOrEmpty(record.grossWeight),
+    netWeight: stringOrEmpty(record.netWeight),
+    measurementUnit: textValue(record.measurementUnit, 'KGS'),
+    totalPackages: stringOrEmpty(record.totalPackages),
+    marksAndNumbers: textValue(record.marksAndNumbers),
+    loosePackets: textValue(record.loosePackets, '0'),
+    numberOfContainers: textValue(record.numberOfContainers, '0'),
+    containers: Array.isArray(record.containers) ? record.containers : [],
     invoices:
-      Array.isArray(raw.invoices) && raw.invoices.length > 0
-        ? raw.invoices.map((inv: any, idx: number) => ({
-            invoiceNumber: inv.invoiceNumber || `INV-${idx + 1}`,
-            invoiceDate: formatEpochDays(inv.date || inv.invoiceDate) || new Date().toISOString().split('T')[0],
-            currency:
-              typeof inv.currency === 'number'
-                ? inv.currency === 840
-                  ? 'USD'
-                  : inv.currency === 356
-                    ? 'INR'
-                    : String(inv.currency)
-                : inv.currency || 'USD',
-            contractType: String(inv.contractType ?? '1'),
-            buyerId: String(inv.buyerId ?? ''),
-            buyerBranchId: String(inv.buyerAddressId ?? inv.buyerBranchId ?? ''),
-            buyerSameAsConsignee: inv.buyerId == null || String(inv.buyerId) === String(raw.consigneeId),
-            freightAmount: inv.freightAmount ? String(inv.freightAmount) : '',
-            insuranceAmount: inv.insuranceAmount ? String(inv.insuranceAmount) : '',
-            items:
-              Array.isArray(inv.items) && inv.items.length > 0
-                ? inv.items.map((item: any) => ({
-                    schemeCode: item.schemeCode || '',
-                    ritcCode: item.ritcCode || '',
-                    goodsDescription1: item.goodsDescription || item.goodsDescription1 || '',
-                    quantity: item.quantity ? String(item.quantity) : '',
-                    unitOfMeasurement: item.unitOfMeasurement || 'PCS',
-                    unitPrice: item.unitPrice ? String(item.unitPrice) : '',
-                    unitOfRate: item.unitOfRate || item.unitOfMeasurement || 'PCS',
-                    numberOfUnits: item.noOfUnits ? String(item.noOfUnits) : '1',
-                    presentMarketValue: item.presentMarketValue ? String(item.presentMarketValue) : '',
-                    thirdPartyItem: Boolean(item.thirdParty),
-                    rewardItem: Boolean(item.rewardItem),
-                    totalPackage: item.totalPackage ? String(item.totalPackage) : '',
-                    endUseOfItem: item.endUseOfItem || '',
-                    igstPaymentStatus: item.igstPaymentStatus ? String(item.igstPaymentStatus) : '2',
-                    originDistrictCode: item.originDistrictCode ? String(item.originDistrictCode) : '',
-                    tradeAgreementsCode: item.tradeAgreementsCode || '',
-                    drawbackSerialNumber: item.drawbackSerialNumber || '',
-                    drawbackQuantity: item.drawbackQuantity ? String(item.drawbackQuantity) : ''
-                  }))
-                : []
-          }))
+      rawInvoices.length > 0
+        ? rawInvoices.map((invoice, index) => {
+            const rawItems = asApiRecords(invoice.items)
+            return {
+              invoiceNumber: textValue(invoice.invoiceNumber, `INV-${index + 1}`),
+              invoiceDate:
+                formatEpochDays(invoice.date ?? invoice.invoiceDate) || new Date().toISOString().split('T')[0],
+              currency:
+                typeof invoice.currency === 'number'
+                  ? invoice.currency === 840
+                    ? 'USD'
+                    : invoice.currency === 356
+                      ? 'INR'
+                      : String(invoice.currency)
+                  : textValue(invoice.currency, 'USD'),
+              contractType: textValue(invoice.contractType, '1'),
+              buyerId: stringOrEmpty(invoice.buyerId),
+              buyerBranchId: stringOrEmpty(invoice.buyerAddressId ?? invoice.buyerBranchId),
+              buyerSameAsConsignee:
+                invoice.buyerId == null || textValue(invoice.buyerId) === textValue(record.consigneeId),
+              freightAmount: stringOrEmpty(invoice.freightAmount),
+              insuranceAmount: stringOrEmpty(invoice.insuranceAmount),
+              items:
+                rawItems.length > 0
+                  ? rawItems.map((item) => ({
+                      schemeCode: textValue(item.schemeCode),
+                      ritcCode: textValue(item.ritcCode),
+                      goodsDescription1: textValue(item.goodsDescription ?? item.goodsDescription1),
+                      quantity: stringOrEmpty(item.quantity),
+                      unitOfMeasurement: textValue(item.unitOfMeasurement, 'PCS'),
+                      unitPrice: stringOrEmpty(item.unitPrice),
+                      unitOfRate: textValue(item.unitOfRate ?? item.unitOfMeasurement, 'PCS'),
+                      numberOfUnits: textValue(item.noOfUnits, '1'),
+                      presentMarketValue: stringOrEmpty(item.presentMarketValue),
+                      thirdPartyItem: Boolean(item.thirdParty),
+                      rewardItem: Boolean(item.rewardItem),
+                      totalPackage: stringOrEmpty(item.totalPackage),
+                      endUseOfItem: textValue(item.endUseOfItem),
+                      igstPaymentStatus: textValue(item.igstPaymentStatus, '2'),
+                      originDistrictCode: stringOrEmpty(item.originDistrictCode),
+                      tradeAgreementsCode: textValue(item.tradeAgreementsCode),
+                      drawbackSerialNumber: textValue(item.drawbackSerialNumber),
+                      drawbackQuantity: stringOrEmpty(item.drawbackQuantity)
+                    }))
+                  : []
+            }
+          })
         : [emptyInvoice()],
-    packingRanges: Array.isArray(raw.packgingList || raw.packingRanges)
-      ? (raw.packgingList || raw.packingRanges).map((p: any) => ({
-          packingNumberFrom: String(p.packingNumberFrom ?? ''),
-          packingNumberTo: String(p.packingNumberTo ?? ''),
-          packingCode: p.packingCode || 'CTN'
-        }))
-      : [],
-    documents: Array.isArray(raw.documents)
-      ? raw.documents.map((doc: any) => ({
-          invoiceSerialNumber: String(doc.invoiceSerialNumber ?? '1'),
-          itemSerialNumber: String(doc.itemSerialNumber ?? '1'),
-          imageReferenceNumber: doc.imageReferenceNumber || '',
-          documentTypeCode: doc.documentTypeCode || '',
-          documentIssueDate: formatEpochDays(doc.documentIssueDate) || new Date().toISOString().split('T')[0],
-          fileType: String(doc.fileType ?? '1')
-        }))
-      : []
+    packingRanges: (() => {
+      const ranges = Array.isArray(record.packgingList) ? record.packgingList : record.packingRanges
+      return asApiRecords(ranges).map((packing) => ({
+        packingNumberFrom: stringOrEmpty(packing.packingNumberFrom),
+        packingNumberTo: stringOrEmpty(packing.packingNumberTo),
+        packingCode: textValue(packing.packingCode, 'CTN')
+      }))
+    })(),
+    documents: asApiRecords(record.documents).map((document) => ({
+      invoiceSerialNumber: textValue(document.invoiceSerialNumber, '1'),
+      itemSerialNumber: textValue(document.itemSerialNumber, '1'),
+      imageReferenceNumber: textValue(document.imageReferenceNumber),
+      documentTypeCode: textValue(document.documentTypeCode),
+      documentReferenceNumber: textValue(document.documentReferenceNumber),
+      documentIssueDate: formatEpochDays(document.documentIssueDate) || new Date().toISOString().split('T')[0],
+      fileType: textValue(document.fileType, '1')
+    }))
   }
 
-  return {
-    id,
-    created,
-    updated,
-    values,
-    payload: raw
-  }
+  return { id, created, updated, values }
 }
 
-export function normalizeApiBills(raw: any): SavedBill[] {
-  if (!raw) return []
-  const list = Array.isArray(raw)
-    ? raw
-    : Array.isArray(raw.data)
-      ? raw.data
-      : Array.isArray(raw.bills)
-        ? raw.bills
-        : Array.isArray(raw.shippingBills)
-          ? raw.shippingBills
-          : Array.isArray(raw.items)
-            ? raw.items
-            : []
-  return list.map(normalizeApiBill)
+export function normalizeApiBills(raw: unknown): SavedBill[] {
+  if (Array.isArray(raw)) return raw.filter(isApiRecord).map(normalizeApiBill)
+  const record = asApiRecord(raw)
+  const list = record.data ?? record.bills ?? record.shippingBills ?? record.items
+  return asApiRecords(list).map(normalizeApiBill)
 }
 
 export function generateFlatFileContent(bill: SavedBill): string {

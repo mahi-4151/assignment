@@ -34,9 +34,7 @@ export default function ListDashboard() {
     try {
       setDownloadingId(bill.id)
       await shippingBillService.downloadFlatFile(bill.id, bill)
-      toast.success(
-        `Flat file (.sb) generated and downloaded for #${bill.values.jobNumber ? bill.values.jobNumber : bill.id}`
-      )
+      toast.success(`Flat file (.sb) generated and downloaded for #${bill.values.jobNumber ?? bill.id}`)
     } catch (err: any) {
       console.warn('Flat file notice:', err)
       toast.error('Failed to generate flat file')
